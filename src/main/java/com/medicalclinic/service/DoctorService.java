@@ -10,12 +10,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import javax.print.Doc;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.List;
 
 import static java.util.Optional.ofNullable;
-import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 
 
 @Service
@@ -24,7 +24,7 @@ public class DoctorService {
     private static DoctorService doctorServiceInstance = null;
 
     public static DoctorService getInstance() {
-        if(doctorServiceInstance == null) {
+        if (doctorServiceInstance == null) {
             doctorServiceInstance = new DoctorService();
         }
         return doctorServiceInstance;
@@ -39,25 +39,41 @@ public class DoctorService {
         return Arrays.asList(ofNullable(restTemplate.getForObject(uri, Doctor[].class))
                 .orElse(new Doctor[0]));
     }
-    @RequestMapping(produces = APPLICATION_JSON_VALUE)
-    public Doctor addDoctor(Doctor doctor){
-        Notification.show(doctor.toString());
-        URI url = UriComponentsBuilder.fromHttpUrl(RequestConfig.SOURCE_ROOT+RequestConfig.GET_DOCTOR)
+
+    public void addDoctor(Doctor doctor) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<Doctor> entity = new HttpEntity<>(doctor, headers);
+        URI url = UriComponentsBuilder.fromHttpUrl(RequestConfig.SOURCE_ROOT + RequestConfig.GET_DOCTOR)
                 .queryParam("firstName", doctor.getFirstName())
                 .queryParam("lastName", doctor.getLastName())
                 .queryParam("specialization", doctor.getSpecialization())
                 .queryParam("phoneNumber", doctor.getPhoneNumber())
                 .queryParam("emailAddress", doctor.getEmailAddress()).build().encode().toUri();
 
-        return restTemplate.postForObject(url, null, Doctor.class);
+        restTemplate.postForObject(url, entity, Doctor.class);
     }
 
+    public void updateDoctor(Doctor doctor) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<Doctor> entity = new HttpEntity<>(doctor, headers);
+        URI url = UriComponentsBuilder.fromHttpUrl(RequestConfig.SOURCE_ROOT + RequestConfig.GET_DOCTOR)
+                .queryParam("doctorId", doctor.getDoctorId())
+                .queryParam("firstName", doctor.getFirstName())
+                .queryParam("lastName", doctor.getLastName())
+                .queryParam("specialization", doctor.getSpecialization())
+                .queryParam("phoneNumber", doctor.getPhoneNumber())
+                .queryParam("emailAddress", doctor.getEmailAddress()).build().encode().toUri();
 
-//    public void addPatient(Doctor doctor) {
-//        HttpHeaders headers = new HttpHeaders();
-//        headers.setContentType(MediaType.APPLICATION_JSON);
-//        ResponseEntity<String> responseEntity = restTemplate.exchange(RequestConfig.SOURCE_ROOT + RequestConfig.GET_DOCTOR, HttpMethod.POST,
-//                new HttpEntity<>(doctor, headers), String.class);
-//        return ofNullable(responseEntity.getBody()).orElse("false").equals("true");
-//    }
+        restTemplate.put(url, entity);
+    }
+
+    public void deleteDoctor(Long doctorId) {
+        URI url = UriComponentsBuilder.fromHttpUrl(RequestConfig.SOURCE_ROOT + RequestConfig.GET_DOCTOR + "/" + doctorId)
+                .build().encode().toUri();
+
+        restTemplate.delete(url);
+    }
+
 }

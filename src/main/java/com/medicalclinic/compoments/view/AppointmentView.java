@@ -1,9 +1,11 @@
-package com.medicalclinic.compoments;
+package com.medicalclinic.compoments.view;
 
 import com.medicalclinic.domain.Appointment;
 import com.medicalclinic.domain.AppointmentType;
+import com.medicalclinic.domain.Doctor;
 import com.medicalclinic.domain.Patient;
 import com.medicalclinic.service.AppointmentService;
+import com.medicalclinic.service.DoctorService;
 import com.medicalclinic.service.PatientService;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.combobox.ComboBox;
@@ -13,30 +15,34 @@ import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.timepicker.TimePicker;
-import com.vaadin.flow.data.binder.Binder;
 
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
 
 
 public class AppointmentView extends VerticalLayout {
+    private final ComboBox<AppointmentType> appointmentTypeComboBox = new ComboBox<>();
+    private final DatePicker appointmentDate = new DatePicker();
+    private final TimePicker appointmentTime = new TimePicker();
+    private final DatePicker createdDate = new DatePicker();
+    private final TimePicker createdTime = new TimePicker();
+    private final ComboBox<Patient> patientComboBox = new ComboBox<>();
+    private final ComboBox<Doctor> doctorComboBox = new ComboBox<>();
+
     private final Grid<Appointment> appointmentList = new Grid<>(Appointment.class);
     private final HorizontalLayout appointmentLayout = new HorizontalLayout();
     private final AppointmentService appointmentService = AppointmentService.getInstance();
     private final PatientService patientService = PatientService.getInstance();
-    private Binder <Appointment> binder = new Binder<>(Appointment.class);
+    private final DoctorService doctorService = DoctorService.getInstance();
+
+    private final Button saveButton = new Button("Save");
 
     public AppointmentView() {
-        Notification.show("Appointment - konstruktor");
-        getStyle().set("background", "radial-gradient(circle, rgba(255,255,255,1) 0%, rgba(178,224,232,1) 50%, rgba(255,255,255,1) 100%)");
-        getStyle().set("border", "10px solid #534b4b");
     }
 
     public VerticalLayout createAppointment() {
+        appointmentTypeComboBox.setItems(AppointmentType.values());
         removeAll();
         setWidth("50%");
         Notification.show("Appointment - createAppointment");
@@ -49,13 +55,16 @@ public class AppointmentView extends VerticalLayout {
         row4.setVerticalComponentAlignment(Alignment.CENTER, row4);
 
         row1.add(createdDate(), createdTime());
-        row2.addAndExpand(new ComboBox<AppointmentType>("Type"), appointmentDate(), appointmentTime());
+        row2.addAndExpand(appointmentTypeComboBox(), appointmentDate(), appointmentTime());
         row3.addAndExpand(patients(), doctors());
-        row4.add(new Button("Save"));
+        row4.add(saveButton);
+
         add(row1);
         add(row2);
         add(row3);
         add(row4);
+
+        saveButton.addClickListener(event -> save());
 
         return this;
     }
@@ -64,43 +73,54 @@ public class AppointmentView extends VerticalLayout {
         removeAll();
         setWidth("100%");
         Notification.show("Appointment - showAppointment");
-        appointmentList.setColumns("appointmentType", "appointmentDate", "appointmentTime", "patient", "doctor", "createdDate", "createdTime");
+        appointmentList.setColumns("appointmentType", "appointmentDate", "appointmentTime", "patient", "doctor");
         appointmentList.setItems(appointmentService.getAppointments());
         add(appointmentList);
-
 
         return this;
     }
 
     public void save() {
+        appointmentService.addAppointment(new Appointment(
+                appointmentTypeComboBox().getValue(),
+                appointmentDate().getValue(),
+                appointmentTime().getValue(),
+                createdDate().getValue(),
+                createdTime().getValue(),
+                patientComboBox.getValue(),
+                doctorComboBox.getValue()
+        ));
 
+
+    }
+    private ComboBox<AppointmentType> appointmentTypeComboBox() {
+        appointmentTypeComboBox.setLabel("Type");
+        appointmentTypeComboBox.setPlaceholder("Choose type of appointment...");
+
+        return appointmentTypeComboBox;
     }
 
     private ComboBox<Patient> patients() {
-        ComboBox<Patient> patients = new ComboBox<>();
-        patients.setLabel("Patient");
-        patients.setPlaceholder("Choose patient");
-        patients.setClearButtonVisible(true);
 
+        patientComboBox.setLabel("Patient");
+        patientComboBox.setPlaceholder("Choose patient...");
+        patientComboBox.setClearButtonVisible(true);
+        patientComboBox.setItems(patientService.getPatients());
 
-        patients.setItems(patientService.getPatients());
-
-
-        return patients;
+        return patientComboBox;
     }
 
-    private ComboBox doctors() {
-        ComboBox doctors = new ComboBox();
-        doctors.setLabel("Doctor");
-        doctors.setPlaceholder("Chose doctor");
-        doctors.setClearButtonVisible(true);
+    private ComboBox<Doctor> doctors() {
 
-        return doctors;
+        doctorComboBox.setLabel("Doctor");
+        doctorComboBox.setPlaceholder("Chose doctor...");
+        doctorComboBox.setClearButtonVisible(true);
+        doctorComboBox.setItems(doctorService.getDoctors());
+        return doctorComboBox;
     }
-
 
     private DatePicker createdDate() {
-        DatePicker createdDate = new DatePicker();
+
         createdDate.setLabel("Created Date");
         createdDate.setValue(LocalDate.now());
         createdDate.setReadOnly(true);
@@ -109,16 +129,16 @@ public class AppointmentView extends VerticalLayout {
     }
 
     private DatePicker appointmentDate() {
-        DatePicker appointmentDate = new DatePicker();
+
         appointmentDate.setLabel("Appointment Date");
-        appointmentDate.setPlaceholder("Choose Date");
+        appointmentDate.setPlaceholder("Choose Date...");
         appointmentDate.setClearButtonVisible(true);
 
         return appointmentDate;
     }
 
     private TimePicker createdTime() {
-        TimePicker createdTime = new TimePicker();
+
         createdTime.setLabel("Created Time");
         createdTime.setValue(LocalTime.now());
         createdTime.setReadOnly(true);
@@ -127,7 +147,6 @@ public class AppointmentView extends VerticalLayout {
     }
 
     private TimePicker appointmentTime() {
-        TimePicker appointmentTime = new TimePicker();
         appointmentTime.setLabel("Appointment Time");
         appointmentTime.setPlaceholder("Choose Time");
         appointmentTime.setClearButtonVisible(true);
